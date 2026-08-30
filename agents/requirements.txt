@@ -1,0 +1,5 @@
+langgraph
+langchain-core
+web3
+python-dotenv
+pytest

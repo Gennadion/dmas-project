@@ -1,0 +1,22 @@
+{
+  "name": "dmas-baseline-blockchain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Blockchain-side scaffold for the DMAS baseline (LangGraph agents + on-chain observability), replacing the Autogen-based anchor paper's implementation.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:ganache": "hardhat run scripts/deploy.js --network ganache",
+    "deploy:dmas:local": "hardhat run scripts/deploy-dmas.js --network localhost",
+    "deploy:dmas:ganache": "hardhat run scripts/deploy-dmas.js --network ganache",
+    "ganache": "ganache --deterministic --chain.chainId 1337 --wallet.mnemonic \"test test test test test test test test test test test junk\""
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "ganache": "^7.9.2",
+    "dotenv": "^16.4.5"
+  }
+}

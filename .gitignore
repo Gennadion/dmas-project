@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Hardhat
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# Env files
+.env
+.env.local
+!.env.example
+
+# Local editor/tool settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
