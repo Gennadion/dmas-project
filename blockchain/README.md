@@ -24,14 +24,19 @@ That said, a `ganache` network is still configured in `hardhat.config.js` in
 case you have a specific reason to match an existing Ganache-based setup —
 switching networks is just a flag.
 
-## Setup (Windows, PowerShell — same commands work on macOS/Linux)
+## Prerequisites
+
+- Node.js 18+
+- npm
+
+## Installation (Windows, PowerShell — same commands work on macOS/Linux)
 
 ```powershell
 cd blockchain
 npm install
 ```
 
-## Day-to-day workflow
+## Launch
 
 Two terminals:
 

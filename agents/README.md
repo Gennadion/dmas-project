@@ -24,7 +24,12 @@ Two things are deliberately **not** here yet:
 Both `web3` and `python-dotenv` are already in `requirements.txt`, installed
 now so Step 4 can start importing them immediately.
 
-## Setup (Windows, PowerShell — same commands work on macOS/Linux)
+## Prerequisites
+
+- Python 3.10+
+- pip
+
+## Installation (Windows, PowerShell — same commands work on macOS/Linux)
 
 ```powershell
 cd agents
@@ -33,7 +38,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Running the demo
+## Launch
 
 ```powershell
 python run_baseline.py
