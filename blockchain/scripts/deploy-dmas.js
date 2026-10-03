@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const hre = require("hardhat");
 
 async function main() {
@@ -14,6 +16,21 @@ async function main() {
   await ledger.waitForDeployment();
   const ledgerAddress = await ledger.getAddress();
   console.log(`CommunicationLedger deployed to: ${ledgerAddress}`);
+
+  // Read by the Python agents (dmas/chain.py) to attach to these contracts.
+  const { chainId } = await hre.ethers.provider.getNetwork();
+  const outDir = path.join(__dirname, "..", "deployments");
+  fs.mkdirSync(outDir, { recursive: true });
+  const outFile = path.join(outDir, `${hre.network.name}.json`);
+  fs.writeFileSync(
+    outFile,
+    JSON.stringify(
+      { chainId: Number(chainId), AgentRegistry: registryAddress, CommunicationLedger: ledgerAddress },
+      null,
+      2
+    ) + "\n"
+  );
+  console.log(`Addresses written to: ${outFile}`);
 
   console.log(
     "Watch it live: in the terminal running `npx hardhat node`, every " +

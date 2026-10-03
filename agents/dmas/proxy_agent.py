@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from dmas.discovery import DiscoveryState, Strategy, run_discovery
 from dmas.termination import Predicate, any_of, max_communications, min_terminal_responses
-from dmas.topology import Topology
+from dmas.topology import ServiceNetwork
 from dmas.types import Request, Response
 
 DEFAULT_TERMINATION: Predicate = any_of(min_terminal_responses(3), max_communications(20))
@@ -17,7 +17,7 @@ DEFAULT_TERMINATION: Predicate = any_of(min_terminal_responses(3), max_communica
 @dataclass
 class ProxyAgent:
     user_id: str
-    topology: Topology
+    topology: ServiceNetwork
     context: list[DiscoveryState] = field(default_factory=list)  # Gamma(u)
 
     def discover(

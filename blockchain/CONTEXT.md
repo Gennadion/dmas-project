@@ -7,7 +7,7 @@ multi-agent architecture as a baseline, but with **LangGraph instead of
 Autogen**, so it can be benchmarked against/extended for the dissertation's
 anonymous-credential work.
 
-## Status: Step 3 done — Python/LangGraph discovery scaffold verified working
+## Status: Step 4 done — agents wired to the on-chain registry and ledger
 `blockchain/` contains a Hardhat project (see `blockchain/README.md` for
 full rationale/commands). Confirmed working: `npm install`, `npm run
 compile`, `npm test`, `npm run deploy:local`, `npm run deploy:dmas:local`.
@@ -100,14 +100,41 @@ visits in LIFO order, BFS in FIFO order, and that a termination predicate
 actually halts discovery early. `python run_baseline.py` prints a live
 trace of both strategies for manual inspection.
 
-## Next steps (in order)
+### Step 4 — agents wired to chain (done)
+`agents/dmas/` now talks to `AgentRegistry` and `CommunicationLedger` via
+`web3.py`, each agent signing with its own key derived from the shared test
+mnemonic (local signing, not the node's unlocked accounts — SSI, and it
+works unchanged on Ganache). ABIs/bytecode are read from Hardhat's
+`artifacts/`; `deploy-dmas.js` now also writes
+`deployments/<network>.json` (gitignored) for Python to attach to.
 
-**Step 4 — wire agents to chain.** Replace the `dmas/topology.py` stub
-registry with `resolve()` calls against the deployed `AgentRegistry`, and
-replace `ServiceAgent.handle()`'s stub `Com(u, s)` with the real protocol:
-`commitRequest` → `commitResponse` → `fulfillCondition` on
-`CommunicationLedger`, via `web3.py`, using the same deterministic test
-accounts Hardhat's node prints on startup.
+- **Registry → `FirstSelect`.** `ChainTopology` (`dmas/chain_topology.py`)
+  replaces `dmas/topology.py` as the registry. `AgentRegistry` has no
+  enumeration, so the directory is its `AgentRegistered` event log; each
+  agent is then `resolve()`d and its off-chain JSON-LD capability schema
+  (`id`, `capability`, `role`) checked against the on-chain hash before
+  it is selected or contacted. SA ids are now DIDs (`did:dmas:<name>`).
+- **`Com(u, s)`** (`dmas/commitment.py`) is the full III-B.2 protocol:
+  `commitRequest(H(P(▷)))` → SA verifies payload vs. commitment, encrypts
+  its response under a fresh κ (AES-GCM, `pycryptodome`), `commitResponse
+  (H(enc), η)` → PA verifies `H(enc)` vs. commitment, `fulfillCondition`
+  pays η → SA checks `fulfilled` on-chain before releasing κ → PA decrypts.
+  The PA's `Response` carries the request/response ids as its
+  non-repudiation evidence in Γ(u).
+- η stays payment-only (see open questions): terminal SAs charge 0.001
+  ETH, routing SAs 0 — every exchange, including forwarding, still goes
+  through all three on-chain steps.
+- The in-process `Topology` is kept behind the same `ServiceNetwork`
+  interface so the graph stays unit-testable without a chain; the graph
+  itself only changed to call `topology.communicate(...)`.
+
+Tests: `agents/tests/test_chain.py` (8 tests, own Hardhat node on port
+8546) — on-chain DFS/BFS order matches the in-process version exactly,
+every exchange is committed and paid, and revoked SAs, tampered schemas,
+and ciphertexts that differ from their commitment are rejected.
+`python run_baseline.py` runs the demo against `npx hardhat node`.
+
+## Next steps (in order)
 
 **Step 5 — baseline parity check.** Confirm the LangGraph reimplementation
 behaves equivalently to the paper's Autogen version before building the
@@ -116,13 +143,13 @@ on top.
 
 ## Open questions not yet resolved
 - Whether `η` (the response-release condition) needs to support anything
-  beyond payment for the baseline, or whether the payment-only version
-  built in Step 2 is sufficient since the paper never generalizes past it.
-- Off-chain payload transport (P(▷), the encrypted response, D(◁̄) storage)
-  is moot for now (Step 3 runs everything in-process), but will need an
-  answer in Step 4 once `AgentRegistry` capability schemas plausibly point
-  at real endpoints — plain HTTP between local processes is still the
-  likely answer, not yet decided.
-- Whether real LLM calls (GPT-4o, matching the paper's setup) get wired
-  into `ServiceAgent.handle()`/PA reasoning in Step 4, or stay stubbed
-  until Step 5's parity check specifically needs them.
+  beyond payment for the baseline. Step 4 kept the payment-only version
+  (η = 0 for routing SAs), since the paper never generalizes past it.
+- Off-chain transport is still in-process after Step 4: P(▷), the
+  encrypted response, κ, and capability-schema resolution are method
+  calls on `ServiceEndpoint`, though each side verifies everything against
+  the chain. Plain HTTP between local processes is still the likely answer
+  if Step 5 needs process separation — not yet decided.
+- Real LLM calls (GPT-4o, matching the paper's setup) were *not* wired in
+  Step 4; `ServiceAgent.handle()` is still the deterministic stub. Decide
+  whether Step 5's parity check needs them.

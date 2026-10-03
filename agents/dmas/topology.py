@@ -3,15 +3,26 @@
 Scaled-down stand-in for the paper's performance-section topology (4
 routing agents x 7 terminal agents each, III-A/V-A) -- small enough to
 read a full discovery trace, structured the same way so it's trivial to
-grow later. This is an in-process stand-in for the on-chain
-AgentRegistry/VAR (III-A.2); Step 4 replaces lookups here with resolve()
-calls against the deployed contract.
+grow later. This is the in-process stand-in for the on-chain
+AgentRegistry/VAR (III-A.2), kept so the discovery graph can be tested
+without a chain; `dmas.chain_topology.ChainTopology` is the on-chain one.
 """
 
 from dataclasses import dataclass
+from typing import Protocol
 
 from dmas.service_agent import ServiceAgent
-from dmas.types import Request
+from dmas.types import Request, Response
+
+
+class ServiceNetwork(Protocol):
+    """What the discovery graph needs from an SA registry."""
+
+    def first_select(self, request: Request) -> list[str]: ...
+
+    def communicate(self, sa_id: str, request: Request) -> Response:
+        """Com(u, s) with the SA identified by `sa_id`."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -29,6 +40,10 @@ class Topology:
         on capability, falling back to all routing agents if none match."""
         matches = [a.sa_id for a in self.routing_agents() if a.capability == request.capability]
         return matches or [a.sa_id for a in self.routing_agents()]
+
+    def communicate(self, sa_id: str, request: Request) -> Response:
+        """Com(u, s) stub: a plain call into the SA, no chain."""
+        return self.get(sa_id).handle(request)
 
 
 def example_topology() -> Topology:
