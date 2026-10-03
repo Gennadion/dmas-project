@@ -20,9 +20,6 @@ you actually need — "observe the chain" — better anyway: it streams every
 transaction, contract call, and revert reason to the terminal in real time
 as your agents interact with it, and gives real Solidity stack traces.
 
-That said, a `ganache` network is still configured in `hardhat.config.js` in
-case you have a specific reason to match an existing Ganache-based setup —
-switching networks is just a flag.
 
 ## Prerequisites
 
@@ -60,13 +57,6 @@ npm run deploy:dmas:local   # AgentRegistry + CommunicationLedger
 address — watch Terminal 1 light up when it happens. `deploy:dmas:local`
 deploys the real observability contracts and prints both addresses.
 
-## If you specifically want Ganache instead
-
-```powershell
-npm run ganache        # terminal 1, instead of `npx hardhat node`
-npm run deploy:ganache # terminal 2
-```
-
 ## The DMAS contracts (Step 2)
 
 - **`contracts/AgentRegistry.sol`** — the paper's Verifiable Agent Registry
@@ -99,9 +89,8 @@ blockchain/
 ├── test/
 │   ├── ping.test.js              # basic Hardhat test
 │   └── dmas.test.js              # AgentRegistry + CommunicationLedger tests
-├── hardhat.config.js         # localhost (recommended) + ganache networks
-├── package.json
-└── .env.example               # copy to .env if you want to override defaults
+├── hardhat.config.js         # localhost network (`npx hardhat node`)
+└── package.json
 ```
 
 ## Next (Step 3)
