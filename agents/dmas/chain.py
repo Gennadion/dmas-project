@@ -5,7 +5,8 @@ Contract ABIs/bytecode are read straight from Hardhat's compiled artifacts in
 for both the JS and Python sides. Accounts are derived from the same test
 mnemonic `npx hardhat node` uses, and every transaction is signed locally by
 the agent's own key (SSI: agents control their keys) rather than relying on
-the node's unlocked accounts -- so the same code runs against Ganache too.
+the node's unlocked accounts -- so the same code works against any JSON-RPC
+chain, not just a local Hardhat node.
 """
 
 from __future__ import annotations

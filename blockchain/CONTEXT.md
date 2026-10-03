@@ -105,7 +105,7 @@ trace of both strategies for manual inspection.
 `agents/dmas/` now talks to `AgentRegistry` and `CommunicationLedger` via
 `web3.py`, each agent signing with its own key derived from the shared test
 mnemonic (local signing, not the node's unlocked accounts — SSI, and it
-works unchanged on Ganache). ABIs/bytecode are read from Hardhat's
+works unchanged against any JSON-RPC chain, e.g. a public testnet). ABIs/bytecode are read from Hardhat's
 `artifacts/`; `deploy-dmas.js` now also writes
 `deployments/<network>.json` (gitignored) for Python to attach to.
 
