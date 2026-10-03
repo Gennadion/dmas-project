@@ -56,4 +56,4 @@ npm run deploy:dmas:local
 ```
 
 See `agents/README.md` and `blockchain/README.md` for full details (tests,
-Ganache fallback, contract descriptions).
+contract descriptions).

@@ -16,8 +16,9 @@ Key decision: using Hardhat's own network (`npx hardhat node`) rather than
 Ganache. Ganache/Truffle were sunset by Consensys in 2023 (archived,
 unmaintained, won't track future hard forks) — Hardhat's built-in network is
 actively maintained and streams every tx/call live to the terminal, which is
-what "observing the chain" actually needed. A `ganache` network is still
-configured in `hardhat.config.js` as a fallback if needed later.
+what "observing the chain" actually needed. The `ganache` fallback network
+was later removed entirely: its bundled `fsevents` dependency broke
+`npm ci` on Linux/Windows (and so CI), and nothing used it.
 
 `contracts/Ping.sol` is a throwaway sanity contract only — not part of the
 real system.
@@ -51,7 +52,7 @@ matching the paper's own VAR/communication-protocol division.
 
 Tests: `test/dmas.test.js` covers registry lifecycle + the three
 commitment/fulfillment steps, including the payment-condition enforcement
-path. Deploy via `npm run deploy:dmas:local` (or `:ganache`).
+path. Deploy via `npm run deploy:dmas:local`.
 
 ### Step 3 — Python/LangGraph discovery scaffold (done)
 `agents/` is a Python env (`venv` + `requirements.txt`: `langgraph`,

@@ -8,15 +8,10 @@
     "test": "hardhat test",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
-    "deploy:ganache": "hardhat run scripts/deploy.js --network ganache",
-    "deploy:dmas:local": "hardhat run scripts/deploy-dmas.js --network localhost",
-    "deploy:dmas:ganache": "hardhat run scripts/deploy-dmas.js --network ganache",
-    "ganache": "ganache --deterministic --chain.chainId 1337 --wallet.mnemonic \"test test test test test test test test test test test junk\""
+    "deploy:dmas:local": "hardhat run scripts/deploy-dmas.js --network localhost"
   },
   "devDependencies": {
     "hardhat": "^2.22.0",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "ganache": "^7.9.2",
-    "dotenv": "^16.4.5"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
   }
 }
