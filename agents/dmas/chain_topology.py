@@ -68,6 +68,7 @@ class ChainTopology:
     requester: LocalAccount
     endpoints: dict[str, ServiceEndpoint]
     _addresses: dict[str, str] = field(default_factory=dict, repr=False)  # DID -> address, from chain events
+    _scanned_to: int | None = field(default=None, repr=False)  # last block _addresses covers
 
     def register_all(self, requester_did: str) -> None:
         register(self.chain, self.requester, requester_did, capability_schema(requester_did, "*", "proxy"))
@@ -75,10 +76,14 @@ class ChainTopology:
             register(self.chain, endpoint.account, endpoint.agent.sa_id, endpoint_schema(endpoint))
 
     def _index_registry(self) -> None:
-        """Rebuild the DID -> address index from AgentRegistered events (the
-        contract has no enumeration, so event logs are the directory)."""
-        logs = self.chain.registry.events.AgentRegistered().get_logs(from_block=0)
-        self._addresses = {log["args"]["did"]: log["args"]["agent"] for log in logs}
+        """Extend the DID -> address index with AgentRegistered events since
+        the last scan (the contract has no enumeration, so event logs are the
+        directory). Incremental, since hosted RPCs limit log queries."""
+        start = self.chain.deploy_block if self._scanned_to is None else self._scanned_to + 1
+        latest = self.chain.w3.eth.block_number
+        for log in self.chain.logs(self.chain.registry.events.AgentRegistered(), start, latest):
+            self._addresses[log["args"]["did"]] = log["args"]["agent"]
+        self._scanned_to = max(latest, start - 1)
 
     def verified_endpoint(self, did: str) -> ServiceEndpoint:
         """Resolve `did` on-chain and check the off-chain schema against it."""
@@ -120,10 +125,12 @@ class ChainTopology:
         return communicate(self.chain, self.requester, self.verified_endpoint(sa_id), request)
 
 
-def example_chain_topology(chain: Chain, accounts: list[LocalAccount]) -> ChainTopology:
+def example_chain_topology(
+    chain: Chain, accounts: list[LocalAccount], terminal_eta_wei: int = TERMINAL_ETA_WEI
+) -> ChainTopology:
     """dmas.topology.example_topology(), with each SA bound to its own test
     account (accounts[1:]) and the PA to accounts[0]. Terminal SAs charge
-    TERMINAL_ETA_WEI per response; routing SAs forward for free."""
+    terminal_eta_wei per response; routing SAs forward for free."""
     agents = list(example_topology().agents.values())
     if len(accounts) < len(agents) + 1:
         raise ValueError(f"need {len(agents) + 1} accounts, got {len(accounts)}")
@@ -132,7 +139,7 @@ def example_chain_topology(chain: Chain, accounts: list[LocalAccount]) -> ChainT
     for agent, account in zip(agents, accounts[1:]):
         did = did_for(agent.sa_id)
         on_chain_agent = ServiceAgent(did, agent.capability, children=[did_for(c) for c in agent.children])
-        eta = 0 if agent.is_routing() else TERMINAL_ETA_WEI
+        eta = 0 if agent.is_routing() else terminal_eta_wei
         endpoints[did] = ServiceEndpoint(agent=on_chain_agent, account=account, eta_wei=eta)
 
     return ChainTopology(chain=chain, requester=accounts[0], endpoints=endpoints)

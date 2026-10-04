@@ -33,7 +33,8 @@ class DiscoveryState(TypedDict):
     strategy: Strategy
     termination: Predicate
     candidates: list[str]
-    responses: list[Response]
+    responses: list[Response]  # R: terminal responses only
+    exchanges: list[Response]  # every Com(u, s) result, terminal or not, in order
     call_count: int
     start_time: float
     last_response: Response | None
@@ -67,6 +68,7 @@ def _pop_and_communicate(state: DiscoveryState) -> dict:
         "candidates": candidates,
         "call_count": state["call_count"] + 1,
         "last_response": response,
+        "exchanges": state["exchanges"] + [response],
         "trace": state["trace"] + [step],
     }
 
@@ -133,6 +135,7 @@ def run_discovery(
         "termination": termination,
         "candidates": [],
         "responses": [],
+        "exchanges": [],
         "call_count": 0,
         "start_time": time.monotonic(),
         "last_response": None,

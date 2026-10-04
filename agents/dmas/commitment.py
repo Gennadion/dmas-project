@@ -63,9 +63,10 @@ class ServiceEndpoint:
     eta_wei: int = 0
     _pending_keys: dict[bytes, bytes] = field(default_factory=dict, repr=False)
 
-    def respond(self, chain: Chain, request_id: bytes, payload: bytes) -> tuple[bytes, bytes]:
+    def respond(self, chain: Chain, request_id: bytes, payload: bytes) -> tuple[bytes, bytes, bytes]:
         """Verify the request against its on-chain commitment, reason over
-        it, and commit to the encrypted response. Returns (responseId, enc)."""
+        it, and commit to the encrypted response. Returns (responseId, enc,
+        hash of the commitResponse transaction)."""
         sender, recipient, payload_hash, _, exists = chain.ledger.functions.requests(request_id).call()
         if not exists or recipient != self.account.address:
             raise ChainError(f"{self.agent.sa_id}: request {request_id.hex()} is not addressed to me")
@@ -81,7 +82,7 @@ class ServiceEndpoint:
         )
         response_id = chain.ledger.events.ResponseCommitted().process_receipt(receipt)[0]["args"]["responseId"]
         self._pending_keys[response_id] = key
-        return response_id, enc
+        return response_id, enc, receipt["transactionHash"]
 
     def release_key(self, chain: Chain, response_id: bytes) -> bytes:
         """Release kappa only once eta is satisfied on-chain."""
@@ -95,12 +96,12 @@ def communicate(chain: Chain, requester: LocalAccount, endpoint: ServiceEndpoint
     """Run Com(u, s) end to end from the PA's side and return the decrypted,
     verified response with its on-chain Commitment attached."""
     payload = request.to_bytes()
-    receipt = chain.transact(
+    request_receipt = chain.transact(
         requester, chain.ledger.functions.commitRequest(endpoint.account.address, _h(payload))
     )
-    request_id = chain.ledger.events.RequestCommitted().process_receipt(receipt)[0]["args"]["requestId"]
+    request_id = chain.ledger.events.RequestCommitted().process_receipt(request_receipt)[0]["args"]["requestId"]
 
-    response_id, enc = endpoint.respond(chain, request_id, payload)
+    response_id, enc, response_tx = endpoint.respond(chain, request_id, payload)
 
     committed_request_id, responder, enc_hash, eta_wei, _, exists = chain.ledger.functions.responses(
         response_id
@@ -110,7 +111,9 @@ def communicate(chain: Chain, requester: LocalAccount, endpoint: ServiceEndpoint
     if enc_hash != _h(enc):
         raise ChainError(f"encrypted response from {endpoint.agent.sa_id} does not match its commitment")
 
-    chain.transact(requester, chain.ledger.functions.fulfillCondition(response_id), value=eta_wei)
+    fulfill_receipt = chain.transact(
+        requester, chain.ledger.functions.fulfillCondition(response_id), value=eta_wei
+    )
 
     key = endpoint.release_key(chain, response_id)
     response = Response.from_bytes(decrypt(key, enc))
@@ -119,5 +122,14 @@ def communicate(chain: Chain, requester: LocalAccount, endpoint: ServiceEndpoint
 
     return replace(
         response,
-        commitment=Commitment(request_id=request_id, response_id=response_id, eta_wei=eta_wei),
+        commitment=Commitment(
+            request_id=request_id,
+            response_id=response_id,
+            eta_wei=eta_wei,
+            request_tx=request_receipt["transactionHash"],
+            response_tx=response_tx,
+            fulfill_tx=fulfill_receipt["transactionHash"],
+            ciphertext=enc,
+            key=key,
+        ),
     )

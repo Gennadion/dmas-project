@@ -12,6 +12,9 @@ against and built on.
 - [`blockchain/`](blockchain/) — Hardhat: the on-chain contracts the agents
   use — `AgentRegistry` (the paper's Verifiable Agent Registry) and
   `CommunicationLedger` (the trust-aware communication protocol).
+- [`demo/`](demo/) — a static GitHub Pages page that replays a run recorded
+  on the Sepolia testnet and lets visitors verify every exchange against the
+  chain from their browser.
 
 ## How the two fit together
 
@@ -38,6 +41,7 @@ no LLM calls yet.
 | 2 | `AgentRegistry` + `CommunicationLedger` contracts | done |
 | 3 | LangGraph service discovery, in-process | done |
 | 4 | Agents wired to the contracts via web3.py | done |
+| — | Public demo: recorded Sepolia run on GitHub Pages | built; needs a recording (see [`demo/README.md`](demo/README.md)) |
 | 5 | Parity check against the paper's Autogen version | next |
 
 Rationale, design decisions and open questions: [`blockchain/CONTEXT.md`](blockchain/CONTEXT.md).
@@ -89,6 +93,14 @@ depth-first and once breadth-first, printing each exchange with its on-chain
 request/response ids and η. If you skip the deploy step it deploys fresh
 contracts itself, and it is safe to re-run.
 
+## Public demo (Sepolia + GitHub Pages)
+
+The same agents run unchanged against the Sepolia testnet. Pass `--record` to
+save the run, and the page in [`demo/`](demo/) replays it with Etherscan links
+for every transaction and in-browser verification of each exchange.
+[`demo/README.md`](demo/README.md) walks through getting an RPC URL, a
+testnet-only wallet and faucet ETH, then recording and publishing.
+
 ## Tests
 
 ```powershell
@@ -96,19 +108,23 @@ cd blockchain
 npm test        # contract tests
 
 cd ..\agents
-pytest          # discovery + on-chain tests
+pytest          # discovery, on-chain, and demo-verification tests
 ```
 
 The on-chain agent tests start their own Hardhat node on port 8546, so they
 don't interfere with one you have running on 8545. They need `blockchain/`
-installed and compiled, and are skipped otherwise.
+installed and compiled, and are skipped otherwise. They also run the demo
+page's own verification code (`demo/verify.js`) over a fresh recording, and
+check that tampered recordings fail it.
 
 ## Contributing
 
 `main` is protected: every change goes through a pull request, and both CI
 jobs (`blockchain (Hardhat)` and `agents (pytest)`, see
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) must pass on a branch
-that is up to date with `main`.
+that is up to date with `main`. Changes to `demo/` that land on `main` are
+published to GitHub Pages by
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
 See [`agents/README.md`](agents/README.md) and
 [`blockchain/README.md`](blockchain/README.md) for full details.
