@@ -2,8 +2,9 @@
 and the full Com(u, s) commitment protocol on CommunicationLedger."""
 
 import pytest
+from eth_account import Account
 
-from dmas.chain import Chain, ChainError, hardhat_accounts
+from dmas.chain import TEST_MNEMONIC, Chain, ChainError, check_network, hardhat_accounts
 from dmas.chain_topology import TERMINAL_ETA_WEI, ChainTopology, did_for, example_chain_topology
 from dmas.commitment import ServiceEndpoint
 from dmas.discovery import run_discovery
@@ -101,8 +102,8 @@ def test_pa_refuses_to_pay_for_a_response_that_differs_from_its_commitment(netwo
         """Commits to one ciphertext, then hands the PA a different one."""
 
         def respond(self, chain, request_id, payload):
-            response_id, enc = super().respond(chain, request_id, payload)
-            return response_id, enc[:-1] + bytes([enc[-1] ^ 1])
+            response_id, enc, tx = super().respond(chain, request_id, payload)
+            return response_id, enc[:-1] + bytes([enc[-1] ^ 1]), tx
 
     did = did_for("term-code-1")
     honest = network.endpoints[did]
@@ -114,3 +115,32 @@ def test_pa_refuses_to_pay_for_a_response_that_differs_from_its_commitment(netwo
 
     # It paid gas for commitResponse but was never paid eta.
     assert network.chain.w3.eth.get_balance(honest.account.address) < balance_before
+
+
+@pytest.mark.parametrize(
+    "chain_id, mnemonic, allowed",
+    [
+        (31337, TEST_MNEMONIC, True),  # local Hardhat node
+        (11155111, TEST_MNEMONIC, False),  # public chain + public keys: drainable
+        (11155111, "a private testnet mnemonic", True),
+        (1, "a private testnet mnemonic", False),  # never mainnet
+    ],
+)
+def test_check_network(chain_id, mnemonic, allowed):
+    if allowed:
+        check_network(chain_id, mnemonic)
+    else:
+        with pytest.raises(ChainError):
+            check_network(chain_id, mnemonic)
+
+
+def test_fund_tops_up_only_accounts_below_the_minimum(w3):
+    chain = Chain.deploy(w3, ACCOUNTS[0])
+    empty = Account.create()
+    rich = ACCOUNTS[1]
+    rich_before = w3.eth.get_balance(rich.address)
+
+    chain.fund(ACCOUNTS[0], [empty, rich], min_balance_wei=10**15)
+
+    assert w3.eth.get_balance(empty.address) == 10**15
+    assert w3.eth.get_balance(rich.address) == rich_before

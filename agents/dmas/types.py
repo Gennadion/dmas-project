@@ -28,13 +28,22 @@ class Request:
 
 @dataclass(frozen=True)
 class Commitment:
-    """On-chain evidence of one Com(u, s) exchange (III-B.2): the ids of the
-    request/response commitments on CommunicationLedger and the condition
-    eta (wei) the PA paid to release the response key."""
+    """Evidence of one Com(u, s) exchange (III-B.2): the ids of the
+    request/response commitments on CommunicationLedger, the condition eta
+    (wei) the PA paid, and the transactions that recorded each step.
+
+    `ciphertext` and `key` (kappa) are what make the exchange non-repudiable
+    after the fact: H(ciphertext) is on-chain, and kappa decrypts it to the
+    response, so the PA can prove to anyone what the SA committed to."""
 
     request_id: bytes
     response_id: bytes
     eta_wei: int
+    request_tx: bytes = b""
+    response_tx: bytes = b""
+    fulfill_tx: bytes = b""
+    ciphertext: bytes = b""
+    key: bytes = b""
 
 
 @dataclass(frozen=True)

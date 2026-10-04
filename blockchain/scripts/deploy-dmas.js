@@ -9,6 +9,7 @@ async function main() {
   const registry = await AgentRegistry.deploy();
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
+  const deployBlock = (await registry.deploymentTransaction().wait()).blockNumber;
   console.log(`AgentRegistry deployed to: ${registryAddress}`);
 
   const CommunicationLedger = await hre.ethers.getContractFactory("CommunicationLedger");
@@ -25,7 +26,12 @@ async function main() {
   fs.writeFileSync(
     outFile,
     JSON.stringify(
-      { chainId: Number(chainId), AgentRegistry: registryAddress, CommunicationLedger: ledgerAddress },
+      {
+        chainId: Number(chainId),
+        AgentRegistry: registryAddress,
+        CommunicationLedger: ledgerAddress,
+        deployBlock, // where the agents start scanning registry events
+      },
       null,
       2
     ) + "\n"

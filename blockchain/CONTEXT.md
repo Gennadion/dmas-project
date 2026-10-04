@@ -135,6 +135,38 @@ every exchange is committed and paid, and revoked SAs, tampered schemas,
 and ciphertexts that differ from their commitment are rejected.
 `python run_baseline.py` runs the demo against `npx hardhat node`.
 
+### Public demo — Sepolia + GitHub Pages (built, awaiting a recording)
+The agents run unchanged against Sepolia (`CHAIN_RPC_URL`/`CHAIN_MNEMONIC`/
+`CHAIN_NETWORK=sepolia`); `run_baseline.py --record` writes `demo/run.json`
+and `demo/index.html` replays it on GitHub Pages
+(`.github/workflows/pages.yml`). Chosen over running a chain in the browser
+or hosting a backend: real public transactions are the stronger evidence
+for a dissertation about verifiable communication, and the page stays
+static.
+
+- The recording is the PA's view of Γ(u). Per exchange it holds the three
+  tx hashes, the request bytes, the ciphertext, and the released κ, so
+  anyone can re-check it: H(request), H(ciphertext) and η against the
+  ledger, and κ decrypting the ciphertext to the shown response. Publishing κ
+  after the fact is what makes the exchange non-repudiable to third
+  parties. `Commitment` now carries these fields.
+- `demo/verify.js` is the single implementation of those checks. The page
+  runs it with ethers + WebCrypto in the browser, and
+  `agents/tests/test_recording.py` runs it via Node over genuine and
+  tampered recordings, so CI tests what visitors run.
+- Safety: `check_network` refuses mainnet, and refuses any non-local chain
+  with the public test mnemonic. Recordings never include the RPC URL (it
+  often carries a provider key) or key material other than the κ's.
+- Real-network plumbing: deployments record `deployBlock`, and registry
+  events are scanned incrementally from it in 1,000-block chunks (hosted
+  RPCs cap `eth_getLogs` ranges). SAs are topped up from account 0 to pay
+  their own gas. η and the top-up amount are configurable via `.env`.
+- Optional Etherscan source verification: `npm run verify:dmas:sepolia`
+  with `ETHERSCAN_API_KEY` in Hardhat's `vars` store (outside the repo).
+
+Still to do by hand (needs a funded testnet wallet): record a Sepolia run
+and commit `demo/run.json` — steps in `demo/README.md`.
+
 ## Next steps (in order)
 
 **Step 5 — baseline parity check.** Confirm the LangGraph reimplementation

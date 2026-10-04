@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMAS on Sepolia</title>
+<meta name="description" content="A recorded run of a decentralized multi-agent system whose every exchange is committed on the Sepolia testnet — verifiable live from your browser.">
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --surface-2: #f3f1ed;
+    --text: #1d1c1a;
+    --muted: #6b6760;
+    --border: #e4e0d8;
+    --accent: #3b5bdb;
+    --accent-soft: #e7ecfd;
+    --ok: #2b8a3e;
+    --ok-soft: #e6f4ea;
+    --bad: #c92a2a;
+    --bad-soft: #fdecec;
+    --forward: #8a5a00;
+    --forward-soft: #fdf3dc;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413;
+      --surface: #1c1c1a;
+      --surface-2: #252522;
+      --text: #ecebe8;
+      --muted: #a09c94;
+      --border: #34332f;
+      --accent: #8ea6ff;
+      --accent-soft: #232b45;
+      --ok: #69db7c;
+      --ok-soft: #1c2e21;
+      --bad: #ff8787;
+      --bad-soft: #3a1f1f;
+      --forward: #f2c66d;
+      --forward-soft: #362d17;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 var(--sans);
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.15rem; margin: 40px 0 12px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  .lede { color: var(--muted); font-size: 1.05rem; max-width: 62ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 20px 0 0; color: var(--muted); font-size: 0.9rem; }
+  .meta b { color: var(--text); font-weight: 600; }
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+    background: var(--surface-2); color: var(--muted);
+  }
+  .badge.terminal { background: var(--ok-soft); color: var(--ok); }
+  .badge.routing, .badge.forward { background: var(--forward-soft); color: var(--forward); }
+  .badge.net { background: var(--accent-soft); color: var(--accent); }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .steps li {
+    counter-increment: step; position: relative; padding: 10px 14px 10px 46px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 14px; top: 10px;
+    width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent); font-size: 0.8rem; font-weight: 700;
+  }
+  .note { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
+
+  .tree { display: grid; gap: 10px; }
+  .router {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  }
+  .router-head, .leaf { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .leaves { display: grid; gap: 6px; margin: 10px 0 0 12px; padding-left: 14px; border-left: 2px solid var(--border); }
+  .did { font-family: var(--mono); font-size: 0.88rem; font-weight: 600; }
+  .addr { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+
+  .tabs { display: flex; gap: 6px; margin: 0 0 16px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-size: 0.92rem; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 14px;
+  }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.6; cursor: progress; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+  .tab[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+  .summary { font-size: 0.9rem; color: var(--muted); }
+  .summary.ok { color: var(--ok); font-weight: 600; }
+  .summary.bad { color: var(--bad); font-weight: 600; }
+
+  .request { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; font-size: 0.92rem; }
+  .exchange {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin: 0 0 12px; transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .exchange.hidden { opacity: 0; transform: translateY(6px); }
+  .ex-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; }
+  .ex-num { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .eta { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
+  .txs { display: grid; gap: 4px; margin: 0 0 10px; }
+  .tx { display: grid; grid-template-columns: 1.4rem 14rem minmax(0, 1fr); gap: 8px; font-size: 0.86rem; align-items: baseline; }
+  .tx .n { color: var(--muted); font-weight: 600; }
+  .tx .what { color: var(--muted); }
+  .tx .hash { font-family: var(--mono); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result { font-size: 0.92rem; padding: 8px 12px; border-radius: 8px; background: var(--surface-2); margin: 0 0 10px; overflow-wrap: anywhere; }
+  .checks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; font-size: 0.86rem; }
+  .checks li { display: grid; grid-template-columns: 1.3rem 1fr; gap: 6px; }
+  .checks .mark { font-weight: 700; }
+  .checks .ok .mark { color: var(--ok); }
+  .checks .bad .mark { color: var(--bad); }
+  .checks .detail { color: var(--muted); font-family: var(--mono); font-size: 0.78rem; overflow-wrap: anywhere; }
+  .empty, .error {
+    background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 20px;
+  }
+  .error { border-color: var(--bad); color: var(--bad); }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.88rem; }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 1.5rem; }
+    .tx { grid-template-columns: 1.4rem minmax(0, 1fr); }
+    .tx .hash { grid-column: 2; }
+    .eta { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .exchange { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Agents that leave receipts</h1>
+    <p class="lede">
+      A recorded run of a decentralized multi-agent system (a LangGraph
+      reimplementation of Ding et al., <a href="https://arxiv.org/abs/2512.02410">arXiv:2512.02410</a>).
+      Every request and response between agents was committed on a public
+      blockchain, so you don't have to trust this page: press <b>Verify</b> and
+      your browser re-checks each exchange against the chain itself.
+    </p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section>
+    <h2>How one exchange works</h2>
+    <ol class="steps">
+      <li>The <b>proxy agent</b> commits the hash of its request on-chain (<code>commitRequest</code>).</li>
+      <li>The <b>service agent</b> checks the request against that hash, encrypts its answer under a fresh key κ, and commits the ciphertext's hash and its price η (<code>commitResponse</code>).</li>
+      <li>The proxy agent checks the ciphertext against that hash and pays η on-chain (<code>fulfillCondition</code>).</li>
+      <li>Seeing the payment on-chain, the service agent releases κ and the proxy agent decrypts the answer.</li>
+    </ol>
+    <p class="note">
+      Only hashes and payments go on-chain. This page publishes each exchange's
+      ciphertext and κ, which is what lets anyone confirm what the service
+      agent committed to.
+    </p>
+  </section>
+
+  <section>
+    <h2>The agents</h2>
+    <div class="tree" id="agents"></div>
+  </section>
+
+  <section>
+    <h2>Discovery runs</h2>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="run"></div>
+  </section>
+
+  <footer id="footer">
+    Source: <a href="https://github.com/Gennadion/dmas-project">Gennadion/dmas-project</a>.
+  </footer>
+</main>
+
+<script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.min.js";
+import { verifyExchange } from "./verify.js";
+
+// Public, keyless RPC endpoints the page reads from; override with ?rpc=<url>.
+const PUBLIC_RPCS = {
+  11155111: "https://ethereum-sepolia-rpc.publicnode.com",
+  31337: "http://127.0.0.1:8545",
+};
+const STEP_LABELS = [
+  ["request", "commitRequest", "proxy agent"],
+  ["response", "commitResponse", "service agent"],
+  ["fulfill", "fulfillCondition", "proxy agent"],
+];
+
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c != null) el.append(c);
+  return el;
+}
+
+const short = (hex, n = 10) => `${hex.slice(0, n)}…${hex.slice(-4)}`;
+const eth = (wei) => `${ethers.formatEther(wei)} ETH`;
+
+function explorerLink(rec, kind, value, text) {
+  const label = text ?? short(value);
+  if (!rec.explorer) return h("span", { class: "mono", title: value }, label);
+  return h("a", { href: `${rec.explorer}/${kind}/${value}`, target: "_blank", rel: "noopener", title: value }, label);
+}
+
+function renderMeta(rec, rpcUrl) {
+  const pa = rec.proxyAgent;
+  document.getElementById("meta").replaceChildren(
+    h("span", {}, h("span", { class: "badge net" }, rec.network)),
+    h("span", {}, "Recorded ", h("b", {}, new Date(rec.recordedAt).toLocaleString())),
+    h("span", {}, "Registry ", explorerLink(rec, "address", rec.contracts.AgentRegistry)),
+    h("span", {}, "Ledger ", explorerLink(rec, "address", rec.contracts.CommunicationLedger)),
+    h("span", {}, "Proxy agent ", explorerLink(rec, "address", pa.address)),
+  );
+  document.getElementById("footer").append(
+    " Verification reads the chain through ", h("code", {}, rpcUrl),
+    " (override with ", h("code", {}, "?rpc=<url>"), ")."
+  );
+}
+
+function agentRow(rec, sa, cls) {
+  return h("div", { class: cls },
+    h("span", { class: "did" }, sa.id),
+    h("span", { class: `badge ${sa.role}` }, sa.role),
+    h("span", { class: "badge" }, sa.capability),
+    sa.etaWei !== "0" ? h("span", { class: "badge" }, `η ${eth(sa.etaWei)}`) : null,
+    explorerLink(rec, "address", sa.address),
+  );
+}
+
+function renderAgents(rec) {
+  // Routing SAs forward to the terminal SAs that share their capability
+  // (the example topology); derive the tree from the recorded schemas.
+  const routers = rec.serviceAgents.filter((s) => s.role === "routing");
+  const tree = routers.map((r) =>
+    h("div", { class: "router" },
+      agentRow(rec, r, "router-head"),
+      h("div", { class: "leaves" },
+        rec.serviceAgents
+          .filter((s) => s.role === "terminal" && s.capability === r.capability)
+          .map((s) => agentRow(rec, s, "leaf")))));
+  document.getElementById("agents").replaceChildren(...tree);
+}
+
+function renderChecks(list, checks) {
+  list.replaceChildren(...checks.map((c) =>
+    h("li", { class: c.ok ? "ok" : "bad" },
+      h("span", { class: "mark" }, c.ok ? "✓" : "✗"),
+      h("span", {}, c.label, h("br"), h("span", { class: "detail" }, c.detail)))));
+}
+
+function exchangeCard(rec, run, ex, i, verify) {
+  const checks = h("ul", { class: "checks" });
+  const button = h("button", {}, "Verify");
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Checking…";
+    const ok = await verify(ex, checks);
+    button.disabled = false;
+    button.textContent = ok ? "Verified ✓" : "Verify again";
+  });
+  const result = ex.terminal
+    ? h("div", { class: "result" }, "Answer: ", ex.response.payload)
+    : h("div", { class: "result" }, "Forwards to: ", h("span", { class: "mono" }, ex.response.forwarded.join(", ")));
+  return h("article", { class: "exchange" },
+    h("div", { class: "ex-head" },
+      h("span", { class: "ex-num" }, `#${i + 1}`),
+      h("span", { class: "did" }, ex.sa),
+      h("span", { class: `badge ${ex.terminal ? "terminal" : "forward"}` }, ex.terminal ? "terminal" : "forward"),
+      h("span", { class: "eta" }, ex.etaWei === "0" ? "η = 0 (free)" : `η = ${eth(ex.etaWei)}`)),
+    h("div", { class: "txs" },
+      STEP_LABELS.map(([key, fn, who], n) =>
+        h("div", { class: "tx" },
+          h("span", { class: "n" }, String(n + 1)),
+          h("span", { class: "what" }, `${fn} · ${who}`),
+          h("span", { class: "hash" }, explorerLink(rec, "tx", ex.txs[key], ex.txs[key]))))),
+    result,
+    button,
+    checks);
+}
+
+function renderRun(rec, run, verifyOne) {
+  const summary = h("span", { class: "summary" });
+  const cards = run.exchanges.map((ex, i) => {
+    const card = exchangeCard(rec, run, ex, i, (e, list) => verifyOne(run, e, list));
+    card.dataset.index = i;
+    return card;
+  });
+
+  const verifyAll = h("button", { class: "primary" }, "Verify all on-chain");
+  verifyAll.addEventListener("click", async () => {
+    verifyAll.disabled = true;
+    summary.className = "summary";
+    summary.textContent = "Checking against the chain…";
+    let failed = 0;
+    for (const [i, ex] of run.exchanges.entries()) {
+      const ok = await verifyOne(run, ex, cards[i].querySelector(".checks"));
+      if (!ok) failed++;
+      cards[i].querySelector("button").textContent = ok ? "Verified ✓" : "Verify again";
+    }
+    verifyAll.disabled = false;
+    summary.className = failed ? "summary bad" : "summary ok";
+    summary.textContent = failed
+      ? `${failed} of ${run.exchanges.length} exchanges failed verification`
+      : `All ${run.exchanges.length} exchanges match the chain`;
+  });
+
+  const replay = h("button", {}, "Replay");
+  replay.addEventListener("click", () => {
+    cards.forEach((c) => c.classList.add("hidden"));
+    cards.forEach((c, i) => setTimeout(() => c.classList.remove("hidden"), 250 + i * 650));
+  });
+
+  const strategy = run.strategy === "dfs" ? "depth-first (stack)" : "breadth-first (queue)";
+  document.getElementById("run").replaceChildren(
+    h("div", { class: "request" },
+      `Request: “${run.request.payload}” · capability `, h("code", {}, run.request.capability),
+      ` · ${strategy} · results from `, h("span", { class: "mono" }, run.results.join(", ") || "none")),
+    h("div", { class: "toolbar" }, verifyAll, replay, summary),
+    ...cards);
+}
+
+function renderTabs(rec, verifyOne) {
+  const tabs = rec.runs.map((run, i) => {
+    const tab = h("button", { class: "tab", role: "tab", "aria-selected": "false" },
+      run.strategy === "dfs" ? "Depth-first" : "Breadth-first");
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+      renderRun(rec, run, verifyOne);
+    });
+    return tab;
+  });
+  document.getElementById("tabs").replaceChildren(...tabs);
+  tabs[0]?.click();
+}
+
+function renderEmpty(message, isError) {
+  document.getElementById("run").replaceChildren(h("div", { class: isError ? "error" : "empty" }, message));
+}
+
+async function main() {
+  let rec;
+  try {
+    const res = await fetch("run.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    rec = await res.json();
+  } catch {
+    renderEmpty("No run has been recorded yet. See demo/README.md in the repository to record one on Sepolia.");
+    return;
+  }
+
+  const rpcUrl = new URLSearchParams(location.search).get("rpc") ?? PUBLIC_RPCS[rec.chainId];
+  const provider = new ethers.JsonRpcProvider(rpcUrl, rec.chainId, { staticNetwork: true });
+  renderMeta(rec, rpcUrl);
+  renderAgents(rec);
+
+  async function verifyOne(run, exchange, list) {
+    try {
+      const checks = await verifyExchange({ ethers, provider, subtle: crypto.subtle, recording: rec, run, exchange });
+      renderChecks(list, checks);
+      return checks.every((c) => c.ok);
+    } catch (error) {
+      renderChecks(list, [{ ok: false, label: "Could not reach the chain", detail: error.shortMessage ?? error.message }]);
+      return false;
+    }
+  }
+  renderTabs(rec, verifyOne);
+}
+
+main();
+</script>
+</body>
+</html>

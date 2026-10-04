@@ -82,6 +82,12 @@ past in terminal 1. Safe to re-run: registration is idempotent.
 Defaults match `npx hardhat node`; copy `.env.example` to `.env` to point
 at a different RPC URL, mnemonic, or deployment.
 
+`python run_baseline.py --record ..\demo\run.json` also saves the run for
+the GitHub Pages demo. The same script runs against the Sepolia testnet: see
+`demo/README.md`. On any non-local chain it refuses the public test mnemonic
+(anyone could drain those accounts) and it refuses mainnet outright. It also
+tops each service agent up from account 0 so the agents can pay their own gas.
+
 ## Running the tests
 
 ```powershell
@@ -108,20 +114,22 @@ actually halts discovery before the whole topology is exhausted.
 agents/
 ├── requirements.txt        # langgraph, langchain-core, web3, python-dotenv, pycryptodome, pytest
 ├── .env.example            # RPC URL / mnemonic / deployment overrides
-├── run_baseline.py         # demo: runs DFS + BFS discovery on-chain, prints the trace
+├── run_baseline.py         # demo: runs DFS + BFS discovery on-chain, prints/records the trace
 ├── dmas/
 │   ├── types.py            # Request / Response / Commitment
 │   ├── termination.py      # tau: atomic predicates + any_of/all_of composition
 │   ├── service_agent.py    # SA reasoning stub: forwards (routing) or terminates
 │   ├── topology.py         # ServiceNetwork interface + in-process example registry
-│   ├── chain.py            # web3.py: artifacts, test accounts, deploy/attach, signed txs
+│   ├── chain.py            # web3.py: artifacts, accounts, deploy/attach, signed txs, funding, network guard
 │   ├── commitment.py       # Com(u, s): the III-B.2 commitment protocol (PA + SA sides)
 │   ├── chain_topology.py   # AgentRegistry-backed ServiceNetwork + example on-chain topology
 │   ├── discovery.py        # the LangGraph StateGraph implementing Algorithm 1 (+ BFS)
+│   ├── recording.py        # serializes runs into demo/run.json for the Pages demo
 │   └── proxy_agent.py      # PA: holds Gamma(u), runs discovery
 └── tests/
     ├── conftest.py         # throwaway Hardhat node for the on-chain tests
     ├── test_chain.py
+    ├── test_recording.py   # runs demo/verify.js over real + tampered recordings
     ├── test_termination.py
     ├── test_service_agent.py
     └── test_discovery.py

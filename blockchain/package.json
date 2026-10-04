@@ -8,7 +8,8 @@
     "test": "hardhat test",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
-    "deploy:dmas:local": "hardhat run scripts/deploy-dmas.js --network localhost"
+    "deploy:dmas:local": "hardhat run scripts/deploy-dmas.js --network localhost",
+    "verify:dmas:sepolia": "hardhat run scripts/verify-dmas.js --network sepolia"
   },
   "devDependencies": {
     "hardhat": "^2.22.0",

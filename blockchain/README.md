@@ -87,11 +87,12 @@ blockchain/
 │   └── CommunicationLedger.sol  # trust-aware protocol on-chain steps (III-B.2)
 ├── scripts/
 │   ├── deploy.js                 # deploys Ping.sol
-│   └── deploy-dmas.js            # deploys AgentRegistry + CommunicationLedger, writes deployments/
+│   ├── deploy-dmas.js            # deploys AgentRegistry + CommunicationLedger, writes deployments/
+│   └── verify-dmas.js            # publishes their source on Etherscan (Sepolia demo, optional)
 ├── test/
 │   ├── ping.test.js              # basic Hardhat test
 │   └── dmas.test.js              # AgentRegistry + CommunicationLedger tests
-├── hardhat.config.js         # localhost network (`npx hardhat node`)
+├── hardhat.config.js         # localhost network (`npx hardhat node`) + sepolia (verification only)
 └── package.json
 ```
 
