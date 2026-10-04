@@ -21,7 +21,7 @@ from typing import Literal, TypedDict
 from langgraph.graph import END, StateGraph
 
 from dmas.termination import Predicate, TerminationContext
-from dmas.topology import Topology
+from dmas.topology import ServiceNetwork
 from dmas.types import Request, Response
 
 Strategy = Literal["dfs", "bfs"]
@@ -29,7 +29,7 @@ Strategy = Literal["dfs", "bfs"]
 
 class DiscoveryState(TypedDict):
     request: Request
-    topology: Topology
+    topology: ServiceNetwork
     strategy: Strategy
     termination: Predicate
     candidates: list[str]
@@ -53,13 +53,15 @@ def _pop_and_communicate(state: DiscoveryState) -> dict:
     # _push_candidates), so this is the only place the two strategies differ.
     sa_id = candidates.pop() if state["strategy"] == "dfs" else candidates.pop(0)
 
-    sa = state["topology"].get(sa_id)
-    response = sa.handle(state["request"])
+    response = state["topology"].communicate(sa_id, state["request"])
 
     if response.is_terminal:
         step = f"Com(u, {sa_id}) -> terminal: {response.payload}"
     else:
         step = f"Com(u, {sa_id}) -> forward -> {response.forwarded}"
+    if response.commitment:
+        c = response.commitment
+        step += f"  [req {c.request_id.hex()[:10]}, resp {c.response_id.hex()[:10]}, eta {c.eta_wei} wei]"
 
     return {
         "candidates": candidates,
@@ -120,7 +122,7 @@ _COMPILED_GRAPH = build_discovery_graph()
 
 def run_discovery(
     request: Request,
-    topology: Topology,
+    topology: ServiceNetwork,
     strategy: Strategy,
     termination: Predicate,
 ) -> DiscoveryState:

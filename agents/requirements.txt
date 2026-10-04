@@ -2,4 +2,5 @@ langgraph
 langchain-core
 web3
 python-dotenv
+pycryptodome
 pytest

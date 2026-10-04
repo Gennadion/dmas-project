@@ -55,7 +55,9 @@ npm run deploy:dmas:local   # AgentRegistry + CommunicationLedger
 
 `deploy:local` deploys `Ping.sol` to the node from Terminal 1 and prints its
 address — watch Terminal 1 light up when it happens. `deploy:dmas:local`
-deploys the real observability contracts and prints both addresses.
+deploys the real observability contracts, prints both addresses, and
+writes them to `deployments/<network>.json` (gitignored) — that's what the
+Python agents in `agents/` attach to.
 
 ## The DMAS contracts (Step 2)
 
@@ -85,7 +87,7 @@ blockchain/
 │   └── CommunicationLedger.sol  # trust-aware protocol on-chain steps (III-B.2)
 ├── scripts/
 │   ├── deploy.js                 # deploys Ping.sol
-│   └── deploy-dmas.js            # deploys AgentRegistry + CommunicationLedger
+│   └── deploy-dmas.js            # deploys AgentRegistry + CommunicationLedger, writes deployments/
 ├── test/
 │   ├── ping.test.js              # basic Hardhat test
 │   └── dmas.test.js              # AgentRegistry + CommunicationLedger tests
@@ -93,11 +95,11 @@ blockchain/
 └── package.json
 ```
 
-## Next (Step 3)
+## Used by the agents (Steps 3–4)
 
-Python/LangGraph environment: map the paper's PA/SA roles and service
-discovery (depth-first/breadth-first, `FirstSelect`, termination predicate
-τ) onto LangGraph nodes, with each PA-SA exchange (`Com(u, s)`) calling the
-Step 2 contracts via `web3.py`. See `CONTEXT.md` for the detailed mapping
-and open questions (off-chain payload transport, whether `η` needs to be
-more than payment).
+`agents/` (Python/LangGraph) runs the paper's service discovery against
+these contracts: SAs self-register on `AgentRegistry`, `FirstSelect` reads
+the registry, and every PA→SA exchange runs `commitRequest` /
+`commitResponse` / `fulfillCondition` on `CommunicationLedger`. Keep
+`npx hardhat node` open and run `python run_baseline.py` there to watch the
+transactions land. See `agents/README.md` and `CONTEXT.md`.

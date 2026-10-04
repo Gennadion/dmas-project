@@ -1,9 +1,10 @@
 """Service Agent (Ding et al. III-A.1.b): stateless, executes one request at
 a time, either forwarding (SA(r) in Algorithm 1) or terminating.
 
-No LLM and no on-chain calls here by design (see Step 3 plan) -- this is
-the Com(u, s) stub that a later step swaps for the real, verifiable
-request/response commitment protocol (III-B.2) against CommunicationLedger.
+This is only the SA's off-chain reasoning -- deterministic, no LLM yet.
+On-chain identity and the Com(u, s) commitment protocol (III-B.2) wrap it
+in dmas.commitment.ServiceEndpoint; the in-process Topology calls it
+directly.
 """
 
 from dataclasses import dataclass, field
@@ -22,7 +23,7 @@ class ServiceAgent:
         return len(self.children) > 0
 
     def handle(self, request: Request) -> Response:
-        """Stub for Com(u, s): deterministic, no LLM, no chain."""
+        """Stub reasoning: deterministic, no LLM."""
         if self.is_routing():
             return Response(sa_id=self.sa_id, is_terminal=False, forwarded=list(self.children))
         return Response(
